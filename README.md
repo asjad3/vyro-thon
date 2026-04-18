@@ -269,13 +269,71 @@ A streaming mean keeps centroids stable as more photos of the same person
 arrive, without a separate offline clustering job. `ivfflat` cosine indexes
 keep retrieval sub-linear.
 
-### Why face_recognition (dlib) instead of DeepFace/ArcFace
+### Why dlib (and not InsightFace / ArcFace / DeepFace) — a forced trade-off
 
-DeepFace + TensorFlow + RetinaFace needs ~900 MB of RAM at inference, which
-OOMs Render's 512 MB Free tier. dlib's ResNet-based 128-d encoder runs in
-~200 MB and still separates identities well for demo-scale events. The
-embedding dimension (128 vs 512) is purely a schema constant — swap `FACE_MODEL`
-and `EMBEDDING_DIM` to upgrade later.
+The short version: **Render's free tier gives a web service 512 MB of RAM, and
+that's the ceiling every choice in this stack is bending around.**
+
+The original design used **DeepFace with ArcFace** (512-d embeddings) behind
+**RetinaFace** for detection. That stack is ~2.5× more accurate on benchmarks
+(LFW ~99.6% vs dlib's ~99.1%), handles side profiles, occlusion, and poor
+lighting far better, and produces embeddings that generalise across ages. At
+50k photos and thousands of unique identities, that accuracy gap is the
+difference between "my photos" and "someone else's photos". But it also needs:
+
+- **~900 MB peak RAM** at first inference (TensorFlow graph + ArcFace +
+  RetinaFace weights + image pyramids).
+- **~100 MB of model weights** downloaded on first use.
+- **20–30 seconds** of cold-start model loading.
+
+On Render's 512 MB free plan, the worker was OOM-killed the moment
+`/auth/selfie` or `/ingest` touched the model, returning `502 Bad Gateway`
+from Cloudflare. No amount of ingest-loop optimisation rescues that.
+
+So I swapped to **dlib's ResNet face encoder** (`face_recognition` is a thin
+wrapper): 128-d embeddings, HOG-based detector, ~200 MB peak RAM, built into a
+prebuilt `dlib-bin` wheel so the Docker build is ~2 min instead of ~20 min.
+Accuracy is still good enough for a demo — people with clean, frontal,
+well-lit photos are grouped correctly and selfie auth lands on the right
+identity.
+
+**What breaks with dlib at production scale:**
+
+- **Profile shots** — HOG detector barely recognises faces past ~30° yaw.
+- **Small faces** — in a crowd photo, anyone >10 m from the camera is
+  typically missed entirely.
+- **Twins / siblings / similar-looking people** — 128-d encodings cluster
+  them together more often than ArcFace's 512-d ones. This is why the
+  demo threshold had to be tightened to 0.92 — stricter than typical dlib
+  setups.
+- **Rotated / off-axis faces** — produce noisy embeddings that drift
+  centroid means.
+
+**If I had a paid tier ($25/mo Render Standard, 2 GB RAM) or a local box,
+here's exactly what I'd change:**
+
+1. Swap `face-recognition` for **InsightFace** (ONNX runtime, ArcFace
+   buffalo_l model). Faster than dlib on CPU, more accurate than DeepFace.
+2. Bump `EMBEDDING_DIM` in `@app/config.py` from `128` to `512` and recreate
+   `faces.embedding` + `grab_ids.centroid` columns. Everything else in the
+   pipeline (pgvector cosine search, centroid streaming mean, matcher logic)
+   is dimension-agnostic.
+3. Replace the HOG detector with **RetinaFace** or **SCRFD** — detects faces
+   down to ~20 px, handles profiles.
+4. Remove the 800 px image downscale. Run inference on full resolution.
+5. Drop `MATCH_THRESHOLD` back to ~0.55 (ArcFace-calibrated).
+6. Mount a **1 GB persistent disk** at `/data` and pin `DEEPFACE_HOME` /
+   `INSIGHTFACE_HOME` there so model weights survive redeploys (eliminates
+   the 20-second cold-start hit).
+7. Move ingest to a **background worker** (Arq / RQ) — the API returns a job
+   ID, and the worker batches embedding inference. Lets `/ingest` survive
+   50k-photo runs.
+
+None of those are architectural rewrites — they're config knobs and a few
+dependency swaps. The centroid-based `grab_id` assignment, pgvector schema,
+sha256 idempotency, and API surface stay exactly as they are. In other words:
+**this codebase is optimised for correctness of the mental model, then
+deliberately detuned for a $0 infrastructure budget.**
 
 ### Memory discipline for free-tier inference
 
