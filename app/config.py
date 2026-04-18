@@ -7,11 +7,9 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/grabpic"
     STORAGE_DIR: str = "./storage/raw"
-    MATCH_THRESHOLD: float = 0.55
+    MATCH_THRESHOLD: float = 0.92
     MAX_UPLOAD_MB: int = 8
-    FACE_MODEL: str = "ArcFace"
-    FACE_DETECTOR: str = "retinaface"
-    EMBEDDING_DIM: int = 512
+    EMBEDDING_DIM: int = 128
     FRONTEND_ORIGIN: str = "*"  # comma-separated list or "*" for dev
 
     @property

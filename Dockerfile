@@ -5,13 +5,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# OpenCV / DeepFace runtime libs
+# dlib build deps + runtime libs for image decoding.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 \
-    libgl1 \
-    libsm6 \
-    libxext6 \
-    libxrender1 \
+    build-essential \
+    cmake \
+    libopenblas-dev \
+    liblapack-dev \
+    libx11-dev \
+    libgtk-3-dev \
+    libjpeg-dev \
+    libpng-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -21,9 +24,7 @@ RUN pip install -r requirements.txt
 
 COPY app ./app
 
-# Render will mount a persistent disk at /data; defaults below can be overridden via env.
-ENV STORAGE_DIR=/data/storage/raw \
-    DEEPFACE_HOME=/data/.deepface \
+ENV STORAGE_DIR=/tmp/grabpic/storage \
     PORT=8000
 
 EXPOSE 8000

@@ -1,29 +1,23 @@
 databases:
   - name: grabpic-db
-    plan: basic-256mb
+    plan: free
     postgresMajorVersion: 16
 
 services:
   - type: web
     name: grabpic-api
     runtime: docker
-    plan: starter
+    plan: free
     healthCheckPath: /healthz
-    disk:
-      name: grabpic-data
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: DATABASE_URL
         fromDatabase:
           name: grabpic-db
           property: connectionString
       - key: STORAGE_DIR
-        value: /data/storage/raw
-      - key: DEEPFACE_HOME
-        value: /data/.deepface
+        value: /tmp/grabpic/storage
       - key: MATCH_THRESHOLD
-        value: "0.55"
+        value: "0.92"
       - key: MAX_UPLOAD_MB
         value: "8"
       - key: FRONTEND_ORIGIN
