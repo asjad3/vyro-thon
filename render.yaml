@@ -1,6 +1,6 @@
 databases:
   - name: grabpic-db
-    plan: basic_256mb
+    plan: basic-256mb
     postgresMajorVersion: 16
 
 services:
