@@ -1,186 +1,165 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Upload as UploadIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  Camera,
+  Upload,
+  ImageIcon,
+  Loader2,
+  ScanFace,
+  CheckCircle2,
+} from "lucide-react";
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardContent,
 } from "@/components/ui/card";
 import { WebcamCapture } from "@/components/webcam-capture";
 import { ImageGallery } from "@/components/image-gallery";
 import {
   authSelfie,
   fetchGrabImages,
-  type AuthResponse,
   type GrabImage,
+  type AuthResponse,
 } from "@/lib/api";
-import { cn } from "@/lib/utils";
-
-type Tab = "webcam" | "upload";
 
 export default function FindPage() {
-  const [tab, setTab] = React.useState<Tab>("webcam");
-  const [busy, setBusy] = React.useState(false);
+  const [mode, setMode] = React.useState<"cam" | "upload">("cam");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   const [auth, setAuth] = React.useState<AuthResponse | null>(null);
   const [images, setImages] = React.useState<GrabImage[]>([]);
-  const [error, setError] = React.useState<string | null>(null);
 
   const handleBlob = async (blob: Blob) => {
-    setBusy(true);
+    setLoading(true);
     setError(null);
-    setAuth(null);
-    setImages([]);
     try {
-      const result = await authSelfie(blob);
-      setAuth(result);
-      const imgs = await fetchGrabImages(result.grab_id);
+      const res = await authSelfie(blob);
+      setAuth(res);
+      const imgs = await fetchGrabImages(res.grab_id);
       setImages(imgs);
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setBusy(false);
+      setLoading(false);
     }
   };
 
-  const onFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) handleBlob(f);
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await handleBlob(file);
   };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">
+    <div className="animate-fade-in space-y-6">
+      {/* Page header */}
+      <div className="space-y-1">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
           Find my photos
         </h1>
-        <p className="mt-1 text-mutedForeground">
-          Take a selfie or upload one. We&apos;ll match it against known
-          identities and surface every photo containing you.
+        <p className="text-sm text-mutedForeground">
+          Use your camera or upload a selfie to search all indexed event photos.
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Selfie</CardTitle>
-            <CardDescription>
-              Your face is the search token — nothing is stored except the
-              embedding.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4 inline-flex rounded-lg border border-white/10 p-1">
-              {(["webcam", "upload"] as Tab[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={cn(
-                    "rounded-md px-3 py-1.5 text-sm capitalize",
-                    tab === t
-                      ? "bg-white/10 text-foreground"
-                      : "text-mutedForeground hover:text-foreground",
-                  )}
-                >
-                  {t}
-                </button>
-              ))}
+      {/* Input card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <ScanFace className="h-4 w-4 text-primary" />
+              Face search
+            </CardTitle>
+            <div className="flex rounded-lg border border-cardBorder p-0.5">
+              <button
+                onClick={() => setMode("cam")}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  mode === "cam"
+                    ? "bg-muted text-foreground"
+                    : "text-mutedForeground hover:text-foreground"
+                }`}
+              >
+                <Camera className="h-3 w-3" />
+                Camera
+              </button>
+              <button
+                onClick={() => setMode("upload")}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  mode === "upload"
+                    ? "bg-muted text-foreground"
+                    : "text-mutedForeground hover:text-foreground"
+                }`}
+              >
+                <Upload className="h-3 w-3" />
+                Upload
+              </button>
             </div>
-
-            {tab === "webcam" ? (
-              <WebcamCapture onCapture={handleBlob} disabled={busy} />
-            ) : (
-              <label
-                className={cn(
-                  "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/10 p-10 text-center hover:border-white/20 hover:bg-white/5",
-                  busy && "pointer-events-none opacity-50",
-                )}
-              >
-                <UploadIcon className="mb-3 h-10 w-10 text-mutedForeground" />
-                <p className="font-medium">Click to select a selfie</p>
-                <p className="mt-1 text-sm text-mutedForeground">
-                  JPG, PNG, or WebP
-                </p>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={onFileInput}
-                />
-              </label>
-            )}
-
-            {busy && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-mutedForeground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Matching...
+          </div>
+        </CardHeader>
+        <CardContent>
+          {mode === "cam" ? (
+            <WebcamCapture onCapture={handleBlob} disabled={loading} />
+          ) : (
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-cardBorder bg-surface p-10 text-center transition-colors hover:border-primary/30 hover:bg-muted/50">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                <Upload className="h-4 w-4 text-mutedForeground" />
               </div>
-            )}
-            {error && (
-              <p className="mt-4 text-sm text-red-400">{error}</p>
-            )}
-          </CardContent>
-        </Card>
+              <span className="text-sm font-medium text-foreground">
+                Click to select a selfie
+              </span>
+              <span className="mt-1 text-xs text-mutedForeground">
+                JPG, PNG, or WebP
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFile}
+                disabled={loading}
+              />
+            </label>
+          )}
 
+          {loading && (
+            <div className="mt-4 flex items-center gap-2 text-xs text-mutedForeground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+              Searching for your face…
+            </div>
+          )}
+          {error && (
+            <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+              {error}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Results */}
+      {auth && (
         <Card>
           <CardHeader>
-            <CardTitle>Result</CardTitle>
-            <CardDescription>
-              {auth
-                ? "Matched identity."
-                : "Submit a selfie to see your grab_id and photos."}
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-primary" />
+                Results
+              </CardTitle>
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1 text-xs text-accent">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {(auth.confidence * 100).toFixed(1)}% match
+                </span>
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-mutedForeground">
+                  {auth.grab_id}
+                </code>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            {auth ? (
-              <div className="space-y-3 text-sm">
-                <div>
-                  <div className="text-mutedForeground">grab_id</div>
-                  <div className="break-all font-mono text-foreground">
-                    {auth.grab_id}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-mutedForeground">confidence</div>
-                  <div className="text-2xl font-semibold">
-                    {(auth.confidence * 100).toFixed(1)}%
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-mutedForeground">No match yet.</p>
-            )}
+            <ImageGallery images={images} />
           </CardContent>
         </Card>
-      </div>
-
-      {auth && (
-        <div className="space-y-3">
-          <div className="flex items-end justify-between">
-            <h2 className="text-xl font-semibold">
-              Your photos ({images.length})
-            </h2>
-            {!!images.length && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={async () => {
-                  setBusy(true);
-                  try {
-                    setImages(await fetchGrabImages(auth.grab_id));
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                Refresh
-              </Button>
-            )}
-          </div>
-          <ImageGallery images={images} />
-        </div>
       )}
     </div>
   );

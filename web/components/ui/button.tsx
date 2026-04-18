@@ -2,22 +2,25 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: "primary" | "secondary" | "ghost" | "destructive";
   size?: "sm" | "md" | "lg";
 };
 
-const variants = {
+const variants: Record<string, string> = {
   primary:
-    "bg-primary text-primaryForeground hover:bg-primary/90 disabled:opacity-50",
+    "bg-primary text-white shadow-sm hover:bg-primary/85 active:bg-primary/75 disabled:opacity-40",
   secondary:
-    "bg-muted text-foreground hover:bg-muted/80 border border-white/10 disabled:opacity-50",
-  ghost: "bg-transparent text-foreground hover:bg-white/5",
+    "bg-surface text-foreground border border-cardBorder hover:bg-muted active:bg-muted/80 disabled:opacity-40",
+  ghost:
+    "text-mutedForeground hover:text-foreground hover:bg-muted/60 active:bg-muted",
+  destructive:
+    "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 disabled:opacity-40",
 };
 
-const sizes = {
-  sm: "h-9 px-3 text-sm",
-  md: "h-10 px-4 text-sm",
-  lg: "h-12 px-6 text-base",
+const sizes: Record<string, string> = {
+  sm: "h-8 px-3 text-xs",
+  md: "h-9 px-4 text-sm",
+  lg: "h-11 px-5 text-sm",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -25,7 +28,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none",
+        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none",
         variants[variant],
         sizes[size],
         className,

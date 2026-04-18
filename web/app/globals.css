@@ -2,17 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
 :root {
   color-scheme: dark;
 }
 
 html,
 body {
-  background: hsl(240 10% 3.9%);
-  color: hsl(0 0% 98%);
+  background: hsl(220 16% 7%);
+  color: hsl(210 20% 95%);
   min-height: 100%;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
-  border-color: hsl(240 5.9% 20%);
+  border-color: hsl(220 13% 18%);
+}
+
+::selection {
+  background: hsl(210 100% 62% / 0.25);
+}
+
+/* Remove default focus ring, replace with clean one */
+*:focus-visible {
+  outline: 2px solid hsl(210 100% 62% / 0.5);
+  outline-offset: 2px;
 }

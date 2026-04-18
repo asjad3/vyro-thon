@@ -27,19 +27,21 @@ export function PhotoDropzone({ onFiles, disabled }: Props) {
     <div
       {...getRootProps()}
       className={cn(
-        "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 text-center transition-colors",
+        "flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-8 text-center transition-colors",
         isDragActive
           ? "border-primary bg-primary/5"
-          : "border-white/10 hover:border-white/20 hover:bg-white/5",
-        disabled && "pointer-events-none opacity-50",
+          : "border-cardBorder bg-surface hover:border-primary/30 hover:bg-muted/50",
+        disabled && "pointer-events-none opacity-40",
       )}
     >
       <input {...getInputProps()} />
-      <UploadCloud className="mb-3 h-10 w-10 text-mutedForeground" />
-      <p className="font-medium">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+        <UploadCloud className="h-4 w-4 text-mutedForeground" />
+      </div>
+      <p className="text-sm font-medium text-foreground">
         {isDragActive ? "Drop photos here" : "Drag & drop photos, or click to browse"}
       </p>
-      <p className="mt-1 text-sm text-mutedForeground">
+      <p className="mt-1 text-xs text-mutedForeground">
         JPG, PNG, or WebP. Multiple files supported.
       </p>
     </div>

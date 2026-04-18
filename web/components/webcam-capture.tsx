@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Camera, RefreshCw } from "lucide-react";
+import { Camera, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -62,8 +62,8 @@ export function WebcamCapture({ onCapture, disabled }: Props) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-black">
+    <div className="space-y-3">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-cardBorder bg-black">
         <video
           ref={videoRef}
           playsInline
@@ -72,29 +72,34 @@ export function WebcamCapture({ onCapture, disabled }: Props) {
         />
         <canvas ref={canvasRef} className="hidden" />
         {!streaming && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-mutedForeground">
-            <Camera className="h-10 w-10" />
-            <p>Camera off</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-mutedForeground">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/50">
+              <Camera className="h-5 w-5" />
+            </div>
+            <p className="text-xs">Camera off</p>
+          </div>
+        )}
+        {streaming && (
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2">
+            <Button size="sm" onClick={snap} disabled={disabled}>
+              <Camera className="h-3.5 w-3.5" /> Capture
+            </Button>
+            <Button size="sm" variant="secondary" onClick={stop} disabled={disabled}>
+              <Square className="h-3 w-3" /> Stop
+            </Button>
           </div>
         )}
       </div>
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      <div className="flex gap-2">
-        {!streaming ? (
-          <Button onClick={start} disabled={disabled}>
-            <Camera className="h-4 w-4" /> Start camera
-          </Button>
-        ) : (
-          <>
-            <Button onClick={snap} disabled={disabled}>
-              <Camera className="h-4 w-4" /> Capture & find
-            </Button>
-            <Button variant="secondary" onClick={stop} disabled={disabled}>
-              <RefreshCw className="h-4 w-4" /> Stop
-            </Button>
-          </>
-        )}
-      </div>
+      {error && (
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          {error}
+        </div>
+      )}
+      {!streaming && (
+        <Button onClick={start} disabled={disabled}>
+          <Camera className="h-3.5 w-3.5" /> Start camera
+        </Button>
+      )}
     </div>
   );
 }

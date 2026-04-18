@@ -1,50 +1,48 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Sparkles, Upload as UploadIcon } from "lucide-react";
+import {
+  UploadCloud,
+  Inbox,
+  Loader2,
+  CheckCircle2,
+  FileImage,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardContent,
 } from "@/components/ui/card";
 import { PhotoDropzone } from "@/components/photo-dropzone";
-import { runIngest, uploadPhotos, type IngestResponse } from "@/lib/api";
+import { uploadPhotos, runIngest, type IngestResponse } from "@/lib/api";
 
 export default function UploadPage() {
-  const [queued, setQueued] = React.useState<File[]>([]);
-  const [uploading, setUploading] = React.useState(false);
-  const [ingesting, setIngesting] = React.useState(false);
-  const [uploadedCount, setUploadedCount] = React.useState(0);
-  const [ingestResult, setIngestResult] = React.useState<IngestResponse | null>(
-    null,
-  );
+  const [queue, setQueue] = React.useState<File[]>([]);
+  const [uploaded, setUploaded] = React.useState(0);
+  const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [ingestResult, setIngestResult] =
+    React.useState<IngestResponse | null>(null);
 
-  const addFiles = (files: File[]) => {
-    setQueued((q) => [...q, ...files]);
-    setError(null);
-  };
-
-  const doUpload = async () => {
-    if (!queued.length) return;
-    setUploading(true);
+  const handleUpload = async () => {
+    if (!queue.length) return;
+    setBusy(true);
     setError(null);
     try {
-      const res = await uploadPhotos(queued);
-      setUploadedCount((c) => c + res.saved.length);
-      setQueued([]);
+      const res = await uploadPhotos(queue);
+      setUploaded(res.saved.length);
+      setQueue([]);
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setUploading(false);
+      setBusy(false);
     }
   };
 
-  const doIngest = async () => {
-    setIngesting(true);
+  const handleIngest = async () => {
+    setBusy(true);
     setError(null);
     try {
       const res = await runIngest();
@@ -52,123 +50,117 @@ export default function UploadPage() {
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setIngesting(false);
+      setBusy(false);
     }
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-3">
-      <div className="md:col-span-2 space-y-6">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Upload event photos
-          </h1>
-          <p className="mt-1 text-mutedForeground">
-            Drop the raw photos, then run ingest to extract faces and assign
-            grab_ids.
-          </p>
-        </div>
-
-        <PhotoDropzone onFiles={addFiles} disabled={uploading || ingesting} />
-
-        {queued.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Queued ({queued.length})</CardTitle>
-              <CardDescription>
-                These files will be uploaded to the backend&apos;s STORAGE_DIR.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="mb-4 max-h-40 space-y-1 overflow-auto text-sm text-mutedForeground">
-                {queued.map((f, i) => (
-                  <li key={i} className="truncate">
-                    {f.name}{" "}
-                    <span className="text-xs">
-                      ({Math.round(f.size / 1024)} KB)
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex gap-2">
-                <Button onClick={doUpload} disabled={uploading}>
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <UploadIcon className="h-4 w-4" />
-                  )}
-                  {uploading ? "Uploading..." : "Upload"}
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => setQueued([])}
-                  disabled={uploading}
-                >
-                  Clear
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {error && (
-          <Card className="border-red-500/30 bg-red-500/5">
-            <CardContent>
-              <p className="text-sm text-red-400">Error: {error}</p>
-            </CardContent>
-          </Card>
-        )}
+    <div className="animate-fade-in space-y-6">
+      {/* Page header */}
+      <div className="space-y-1">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
+          Upload event photos
+        </h1>
+        <p className="text-sm text-mutedForeground">
+          Drop photos from an event. After uploading, run ingest to detect and
+          index all faces.
+        </p>
       </div>
 
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Ingest</CardTitle>
-            <CardDescription>
-              Runs face detection on all images in STORAGE_DIR. Safe to run
-              multiple times — already-processed images are skipped.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4 text-sm text-mutedForeground">
-              Uploaded this session:{" "}
-              <span className="font-semibold text-foreground">
-                {uploadedCount}
+      {/* Upload card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UploadCloud className="h-4 w-4 text-primary" />
+            Photos
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <PhotoDropzone
+            onFiles={(f) => setQueue((q) => [...q, ...f])}
+            disabled={busy}
+          />
+
+          {!!queue.length && (
+            <div className="flex items-center gap-2 text-xs text-mutedForeground">
+              <FileImage className="h-3.5 w-3.5" />
+              <span>
+                <span className="font-medium text-foreground">
+                  {queue.length}
+                </span>{" "}
+                file(s) queued
               </span>
             </div>
-            <Button
-              onClick={doIngest}
-              disabled={ingesting}
-              className="w-full"
-            >
-              {ingesting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+          )}
+
+          <div className="flex items-center gap-2">
+            <Button onClick={handleUpload} disabled={busy || !queue.length}>
+              {busy ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…
+                </>
               ) : (
-                <Sparkles className="h-4 w-4" />
+                <>
+                  <UploadCloud className="h-3.5 w-3.5" /> Upload
+                </>
               )}
-              {ingesting ? "Processing..." : "Run ingest"}
             </Button>
+            {uploaded > 0 && (
+              <Button
+                variant="secondary"
+                onClick={handleIngest}
+                disabled={busy}
+              >
+                <Inbox className="h-3.5 w-3.5" /> Run ingest
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Feedback */}
+      {error && (
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          {error}
+        </div>
+      )}
+
+      {uploaded > 0 && !ingestResult && (
+        <div className="flex items-center gap-2 text-xs text-accent">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          {uploaded} file(s) uploaded. Click &quot;Run ingest&quot; to detect faces.
+        </div>
+      )}
+
+      {/* Ingest results */}
+      {ingestResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Ingest results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {(
+                [
+                  ["Processed", ingestResult.processed],
+                  ["Skipped", ingestResult.skipped],
+                  ["Faces detected", ingestResult.faces_detected],
+                  ["Identities", ingestResult.grab_ids_created],
+                ] as const
+              ).map(([label, val]) => (
+                <div key={label} className="space-y-0.5">
+                  <p className="text-[10px] uppercase tracking-wider text-mutedForeground">
+                    {label}
+                  </p>
+                  <p className="text-lg font-semibold tabular-nums text-foreground">
+                    {val}
+                  </p>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
-
-        {ingestResult && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Ingest result</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-2 gap-3 text-sm">
-                {Object.entries(ingestResult).map(([k, v]) => (
-                  <div key={k}>
-                    <dt className="text-mutedForeground">{k}</dt>
-                    <dd className="text-xl font-semibold">{v as number}</dd>
-                  </div>
-                ))}
-              </dl>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      )}
     </div>
   );
 }
