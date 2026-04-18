@@ -102,7 +102,14 @@ requirement.
 
 ## API
 
-Base URL in prod: `https://<your-render-service>.onrender.com` • Swagger: `/docs`
+Base URL in prod: `https://<your-render-service>.onrender.com`
+
+**Docs:**
+- 📘 **[Full endpoint reference → `docs/API.md`](./docs/API.md)**
+- 🧪 **Swagger UI** (interactive, try-it-out): `/docs`
+- 📕 **ReDoc**: `/redoc`
+- 🤖 **OpenAPI JSON**: `/openapi.json`
+- 📮 **Postman collection**: [`docs/grabpic.postman_collection.json`](./docs/grabpic.postman_collection.json) — import into Postman and set `baseUrl`.
 
 | Method | Path                      | Purpose                                         |
 |-------:|---------------------------|-------------------------------------------------|

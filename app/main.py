@@ -13,6 +13,7 @@ from app.routers import auth as auth_router
 from app.routers import images as images_router
 from app.routers import ingest as ingest_router
 from app.routers import upload as upload_router
+from app.schemas import HealthResponse
 from app.services import faces as face_svc
 
 logger = logging.getLogger("grabpic")
@@ -33,8 +34,31 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Grabpic",
-    description="Intelligent Identity & Retrieval Engine",
+    summary="Intelligent Identity & Retrieval Engine — selfie-as-a-key photo discovery.",
+    description=(
+        "Grabpic ingests raw event photos, detects every face with dlib, "
+        "assigns each unique face a stable `grab_id` backed by centroid "
+        "matching on pgvector, and lets users retrieve **every photo they "
+        "appear in** by submitting a single selfie.\n\n"
+        "**Workflow:**\n"
+        "1. `POST /upload` photos into storage.\n"
+        "2. `POST /ingest` to index new photos.\n"
+        "3. `POST /auth/selfie` to obtain the caller's `grab_id`.\n"
+        "4. `GET /grabs/{grab_id}/images` to list their photos; `GET "
+        "/files/{image_id}` to stream bytes.\n\n"
+        "All non-2xx responses use the shape `{\"error\": {\"code\", "
+        "\"message\"}}`."
+    ),
     version="0.1.0",
+    contact={"name": "Grabpic", "url": "https://github.com/asjad3/vyro-thon"},
+    license_info={"name": "MIT"},
+    openapi_tags=[
+        {"name": "upload", "description": "Push raw photos into STORAGE_DIR."},
+        {"name": "ingest", "description": "Discovery & transformation pipeline."},
+        {"name": "auth", "description": "Selfie-based identity match."},
+        {"name": "images", "description": "Per-identity image retrieval and byte streaming."},
+        {"name": "system", "description": "Health and liveness."},
+    ],
     lifespan=lifespan,
 )
 
@@ -71,9 +95,15 @@ async def unhandled_exc_handler(request: Request, exc: Exception):
     )
 
 
-@app.get("/healthz", tags=["system"])
-def healthz() -> dict:
-    return {"status": "ok"}
+@app.get(
+    "/healthz",
+    tags=["system"],
+    summary="Liveness probe",
+    description="Returns `{\"status\": \"ok\"}` once the process has booted. Used by Render's health check.",
+    response_model=HealthResponse,
+)
+def healthz() -> HealthResponse:
+    return HealthResponse(status="ok")
 
 
 _origins = [o.strip() for o in settings.FRONTEND_ORIGIN.split(",") if o.strip()]

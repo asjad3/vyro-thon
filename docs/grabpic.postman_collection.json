@@ -1,0 +1,131 @@
+{
+  "info": {
+    "_postman_id": "a7c0b3e0-8c0d-4e7a-b8a1-111111111111",
+    "name": "Grabpic",
+    "description": "Intelligent Identity & Retrieval Engine — selfie-as-a-key photo discovery.\n\nSet the `baseUrl` collection variable to your Render URL (e.g. `https://grabpic-api.onrender.com`).\n\nAfter running `Auth Selfie`, copy the returned `grab_id` into the `grabId` variable; subsequent requests use it automatically.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000", "type": "string" },
+    { "key": "grabId", "value": "", "type": "string" },
+    { "key": "imageId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/healthz", "host": ["{{baseUrl}}"], "path": ["healthz"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Photos",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "files", "type": "file", "src": [] },
+            { "key": "files", "type": "file", "src": [] }
+          ]
+        },
+        "url": { "raw": "{{baseUrl}}/upload", "host": ["{{baseUrl}}"], "path": ["upload"] },
+        "description": "Upload one or many JPG/PNG/WebP photos into STORAGE_DIR. Attach files under the `files` keys."
+      },
+      "response": []
+    },
+    {
+      "name": "Ingest",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": { "raw": "{{baseUrl}}/ingest", "host": ["{{baseUrl}}"], "path": ["ingest"] },
+        "description": "Crawl STORAGE_DIR, detect faces, assign grab_ids.\n\nOptional body: `{\"path\": \"day1\"}` to limit the crawl to a subfolder."
+      },
+      "response": []
+    },
+    {
+      "name": "Auth Selfie",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+              "const data = pm.response.json();",
+              "if (data.grab_id) {",
+              "  pm.collectionVariables.set('grabId', data.grab_id);",
+              "  console.log('Saved grabId =', data.grab_id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": [] }
+          ]
+        },
+        "url": { "raw": "{{baseUrl}}/auth/selfie", "host": ["{{baseUrl}}"], "path": ["auth", "selfie"] },
+        "description": "Submit a selfie; on success the test script writes the returned `grab_id` into the `grabId` collection variable for subsequent requests."
+      },
+      "response": []
+    },
+    {
+      "name": "List Grab Images",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+              "const data = pm.response.json();",
+              "if (data.images && data.images.length) {",
+              "  pm.collectionVariables.set('imageId', data.images[0].id);",
+              "  console.log('Saved imageId =', data.images[0].id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/grabs/{{grabId}}/images",
+          "host": ["{{baseUrl}}"],
+          "path": ["grabs", "{{grabId}}", "images"]
+        },
+        "description": "Returns all images tagged with the given grab_id. The first image's id is captured into the `imageId` variable."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Image File",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/files/{{imageId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["files", "{{imageId}}"]
+        },
+        "description": "Streams the raw bytes of an image. Use `Send and Download` in Postman to save the file."
+      },
+      "response": []
+    }
+  ]
+}

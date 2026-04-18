@@ -6,9 +6,9 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
-from pydantic import BaseModel
 
 from app.config import settings
+from app.schemas import ErrorResponse, SavedFile, UploadResponse
 
 router = APIRouter(tags=["upload"])
 
@@ -20,17 +20,23 @@ EXT_FOR_MIME = {
 }
 
 
-class SavedFile(BaseModel):
-    filename: str
-    path: str
-    bytes: int
-
-
-class UploadResponse(BaseModel):
-    saved: list[SavedFile]
-
-
-@router.post("/upload", response_model=UploadResponse)
+@router.post(
+    "/upload",
+    response_model=UploadResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Upload one or more photos into STORAGE_DIR",
+    description=(
+        "Accepts a multipart form with one or more `files`, validates their MIME "
+        "type (JPEG/PNG/WebP) and size (≤ `MAX_UPLOAD_MB`), and writes each to "
+        "`STORAGE_DIR/uploads/<uuid>.<ext>`. After uploading, call **POST "
+        "/ingest** to run face detection and `grab_id` assignment."
+    ),
+    responses={
+        400: {"model": ErrorResponse, "description": "No files provided"},
+        413: {"model": ErrorResponse, "description": "File exceeds MAX_UPLOAD_MB"},
+        415: {"model": ErrorResponse, "description": "Unsupported media type"},
+    },
+)
 async def upload_photos(files: list[UploadFile] = File(...)) -> UploadResponse:
     if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No files provided")
