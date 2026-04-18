@@ -1,0 +1,16 @@
+.venv
+__pycache__
+*.pyc
+.env
+.env.*
+storage
+.git
+.gitignore
+.idea
+.vscode
+.DS_Store
+web
+node_modules
+*.md
+!README.md
+.windsurf
